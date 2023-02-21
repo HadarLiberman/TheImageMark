@@ -3,6 +3,7 @@ from django.conf import settings
 from PIL import Image as image1
 import io
 import os
+import base64
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
@@ -46,13 +47,14 @@ def images_detail(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 def get_image(request):
-    image_path = os.path.join(settings.BASE_DIR, 'assets/washing_machine.png')
+    source_image_file_name = 'washing_machine'
+    image_path = os.path.join(settings.BASE_DIR, f"assets/{source_image_file_name}.png")
 
     with open(image_path, 'rb') as f:
           image = image1.open(f)
           image_data = image.tobytes()
 
     response = HttpResponse(image_data, content_type='image/png')
-    response['Content-Disposition'] = 'attachment; filename="image.png"'
+    response['Content-Disposition'] = 'attachment; filename="{}.png"'.format(source_image_file_name)
 
     return response
