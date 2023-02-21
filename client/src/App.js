@@ -1,29 +1,20 @@
-import logo from './logo.svg';
+import * as React from "react";
 import './App.css';
-import Header from "./components/Header";
+import { Route, Routes} from "react-router-dom";
+import Header from "./components/Header.js";
+import Loading from "./components/Loading.js";
+import ImageMark from "./components/ImageMark.js";
 
-function App() {
+export default function App(){
   return (
       <>
         <Header/>
-        </>
-    // <div className="App">
-    //   <header className="App-header">
-    //     <img src={logo} className="App-logo" alt="logo" />
-    //     <p>
-    //       Edit <code>src/App.js</code> and save to reload.
-    //     </p>
-    //     <a
-    //       className="App-link"
-    //       href="https://reactjs.org"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       Learn React
-    //     </a>
-    //   </header>
-    // </div>
+      <Routes>
+          <Route path="/" element={<Loading />} />
+          <Route path="/image_mark" element={<ImageMark />} />
+      </Routes>
+      </>
   );
+
 }
 
-export default App;
