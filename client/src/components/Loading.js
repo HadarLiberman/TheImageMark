@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import {Link} from "react-router-dom";
 
 export default function Loading() {
     const [imageSrc, setImageSrc] = useState(null);
@@ -24,12 +25,17 @@ export default function Loading() {
         <div>
             {imageSrc ? (
                 <>
-                    <img src={imageSrc}  />
+                    <h1>image uploaded</h1>
 
                 </>
             ) : (
                 <p>Loading...</p>
             )}
+            <Link to='/image_mark'
+                state={{ image: imageSrc }}
+            >
+                Go to ImageMark
+            </Link>
         </div>
     );
 }
