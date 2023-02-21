@@ -26,6 +26,7 @@ export default function ImageMark(props) {
 
     function handleCanvasClick(event) {
         if (ctx && image && isDrawingMode) {
+
             const rect = canvasRef.current.getBoundingClientRect();
             const x = event.clientX - rect.left - 150; // center of rectangle is 150px to the left of the cursor
             const y = event.clientY - rect.top - 150; // center of rectangle is 150px above the cursor
@@ -43,7 +44,8 @@ export default function ImageMark(props) {
     return (
         <>
         <canvas ref={canvasRef} onClick={handleCanvasClick} width={800} height={800}  style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
-        <button onClick={handleNewRectangleClick} disabled={isButtonDisabled}>New Rectangle</button>
+        <Button onClick={handleNewRectangleClick} disabled={isButtonDisabled}>New Rectangle</Button>
+        <Button >save</Button>
         </>
     );
 
