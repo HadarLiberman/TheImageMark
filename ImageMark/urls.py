@@ -24,4 +24,5 @@ urlpatterns = [
     re_path(r'^api/images/$', views.images_list),
     re_path(r'^api/images/([0-9])$', views.images_detail),
     re_path(r'^api/get_image/$', views.get_image),
+    re_path(r'^api/process_rectangle/$', views.process_rectangle),
 ]
