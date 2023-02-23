@@ -1,6 +1,8 @@
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from PIL import Image as image1
 import io
 import os
@@ -61,35 +63,26 @@ def get_image(request):
     return response
 
 @api_view(['POST'])
+@csrf_exempt
+@require_http_methods(["POST"])
 def process_rectangle(request):
-    request_data = json.loads(request.body)
-    image_settings = request_data.get("image_settings")
+    image_file = request.FILES['image']
+    image_settings_string = request.POST.get('image_settings')
+    image_settings = json.loads(image_settings_string)
     print(image_settings)
+    image_name=image_settings["image_name"]
+
+    assets_folder = os.path.join(settings.BASE_DIR, 'assets')
+    image_path = os.path.join(assets_folder, image_name)
+    with open(image_path, 'wb+') as destination:
+        for chunk in image_file.chunks():
+            destination.write(chunk)
     serializer = ImageSerializer(data=image_settings)
     if serializer.is_valid():
+        print("valid")
         serializer.save()
         return Response(status=status.HTTP_201_CREATED)
-
-#     # Get the rectangle coordinates from the request
-# #     x1 = request.POST.get('x1')
-# #     y1 = request.POST.get('y1')
-# #     x2 = request.POST.get('x2')
-# #     y2 = request.POST.get('y2')
-# #
-# #     # Get the image name from the request
-    #image_name = "lala.png"
-# #
-# #     # Get the image file from the request
-#     received_image_file = data.image_file
-#
-# #
-# #  # Save the image file to the "assets" folder in the file system
-#     assets_folder = os.path.join(settings.BASE_DIR, 'assets')
-#     image_path = os.path.join(assets_folder, image_name)
-#     with open(image_path, 'wb+') as destination:
-#         for chunk in image_file.chunks():
-#             destination.write(chunk)
 #
 
 #     # Return a JSON response
-#     return JsonResponse({'message': 'Rectangle processed successfully'})
+    return JsonResponse({'message': 'Rectangle processed successfully'})
