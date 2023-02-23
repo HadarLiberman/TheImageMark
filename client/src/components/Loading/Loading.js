@@ -4,6 +4,7 @@ import {Link} from "react-router-dom";
 import {Spinner} from "reactstrap";
 import './Loading.css'
 import {BASE_API_URL} from "../../constants/index.js";
+import {convertBlobToBase64} from "../../utils/utilities.js";
 
 export default function Loading() {
     const [imageSrc, setImageSrc] = useState(null);
@@ -14,8 +15,9 @@ export default function Loading() {
             try {
                 const response = await axios.get(`${BASE_API_URL}/get_image`, { responseType: 'arraybuffer' });
                 const blob = new Blob([response.data], { type: 'image/png' });
-                setImageSrc(URL.createObjectURL(blob));
-                setImageName('washing machine');
+                const base64 = await convertBlobToBase64(blob);
+                setImageSrc(base64);
+                setImageName(response.headers['file-name']?.split('.')[0] || 'washing_machine');
             } catch (error) {
                 console.error(error);
             }

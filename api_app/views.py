@@ -58,7 +58,7 @@ def get_image(request):
         image_data = f.read()
 
     response = HttpResponse(image_data, content_type='image/png')
-    response['filename'] = source_image_file_name
+    response['file-name'] = source_image_file_name
 
     return response
 
