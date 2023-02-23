@@ -28,17 +28,6 @@ def images_list(request):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['DELETE'])
-def images_detail(request, pk):
-    try:
-        image = Image.objects.get(pk=pk)
-    except Image.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'DELETE':
-        image.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 def get_image(request):
     source_image_file_name = 'washing_machine'
     image_path = os.path.join(settings.BASE_DIR, f"assets/{source_image_file_name}.png")
