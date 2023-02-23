@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.conf import settings
 from PIL import Image as image1
 import io
@@ -10,6 +11,7 @@ from rest_framework import status
 
 from .models import Image
 from .serializers import *
+import json
 
 @api_view(['GET', 'POST'])
 def images_list(request):
@@ -51,10 +53,43 @@ def get_image(request):
     image_path = os.path.join(settings.BASE_DIR, f"assets/{source_image_file_name}.png")
 
     with open(image_path, 'rb') as f:
-          image = image1.open(f)
-          image_data = image.tobytes()
+        image_data = f.read()
 
     response = HttpResponse(image_data, content_type='image/png')
-    response['Content-Disposition'] = 'attachment; filename="{}.png"'.format(source_image_file_name)
+    response['filename'] = source_image_file_name
 
     return response
+
+@api_view(['POST'])
+def process_rectangle(request):
+    request_data = json.loads(request.body)
+    image_settings = request_data.get("image_settings")
+    print(image_settings)
+    serializer = ImageSerializer(data=image_settings)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(status=status.HTTP_201_CREATED)
+
+#     # Get the rectangle coordinates from the request
+# #     x1 = request.POST.get('x1')
+# #     y1 = request.POST.get('y1')
+# #     x2 = request.POST.get('x2')
+# #     y2 = request.POST.get('y2')
+# #
+# #     # Get the image name from the request
+    #image_name = "lala.png"
+# #
+# #     # Get the image file from the request
+#     received_image_file = data.image_file
+#
+# #
+# #  # Save the image file to the "assets" folder in the file system
+#     assets_folder = os.path.join(settings.BASE_DIR, 'assets')
+#     image_path = os.path.join(assets_folder, image_name)
+#     with open(image_path, 'wb+') as destination:
+#         for chunk in image_file.chunks():
+#             destination.write(chunk)
+#
+
+#     # Return a JSON response
+#     return JsonResponse({'message': 'Rectangle processed successfully'})

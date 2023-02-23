@@ -12,7 +12,7 @@ export default function Loading() {
                 const response = await axios.get('http://localhost:8000/api/get_image/', { responseType: 'arraybuffer' });
                 const blob = new Blob([response.data], { type: 'image/png' });
                 setImageSrc(URL.createObjectURL(blob));
-                console.log(response.headers['filename'])
+                console.log(response.headers)
                 //setImageName(response.headers['content-disposition'].split('"')[1]);
             } catch (error) {
                 console.error(error);
@@ -25,15 +25,13 @@ export default function Loading() {
         <div>
             {imageSrc ? (
                 <>
-                    <h1>image uploaded</h1>
-
+                    <h1>image uploaded, lets start !</h1>
                 </>
             ) : (
                 <p>Loading...</p>
             )}
             <Link to='/image_mark'
-                state={{ image: imageSrc }}
-            >
+                state={{ image_url: imageSrc }}>
                 Go to ImageMark
             </Link>
         </div>
