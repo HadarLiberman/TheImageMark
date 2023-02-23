@@ -61,6 +61,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 
+
 ROOT_URLCONF = 'ImageMark.urls'
 
 TEMPLATES = [

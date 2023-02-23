@@ -2,8 +2,9 @@ import React, {useEffect, useRef, useState} from 'react';
 import { useLocation } from 'react-router-dom';
 import {Button, ButtonGroup, Col, Container, Input} from "reactstrap";
 import {
+    BASE_API_URL,
     CANVAS_HEIGHT,
-    CANVAS_WIDTH,
+    CANVAS_WIDTH, IMAGE_NAME_PATTERN,
     RECTANGLE_COLOR,
     RECTANGLE_HEIGHT,
     RECTANGLE_STROKE_SIZE,
@@ -13,26 +14,27 @@ import { coordinatesCalculation, dataURItoBlob} from "../../utils/utilities.js";
 import axios from "axios";
 import "./ImageMark.css"
 import Cookies from 'js-cookie';
+import {useClearCanvas} from "../useClearCanvas.js";
 export default function ImageMark(props) {
 
     const location = useLocation();
+    const canvasRef = useRef(null);
+    const [ctx, setCtx] = useState(null);
 
     const [sourceImageUrl, setSourceImageUrl] = useState(location.state.image_url);
     const [sourceImageName, setSourceImageName] = useState(location.state.image_name);
-    const canvasRef = useRef(null);
-    const [ctx, setCtx] = useState(null);
-    const [deviceImage, setDeviceImage] = useState(null);
-    const [isDrawingMode, setIsDrawingMode] = useState(false);
-    const [croppedSettings, setCroppedSettings] = useState({});
     const [slicedImageUrl, setSlicedImageUrl] = useState(null);
-    const [isSaveProcess, setIsSaveProcess] = useState(false);
-    const [isNewCanvas, setIsNewCanvas] = useState(false)
+    const [deviceImage, setDeviceImage] = useState(null);
+
+    const [croppedSettings, setCroppedSettings] = useState({});
+
     const [inputValue, setInputValue] = useState('');
+
+    const [isDrawingMode, setIsDrawingMode] = useState(false);
+    const [isSaveProcess, setIsSaveProcess] = useState(false);
+    const [isClearCanvas, setIsClearCanvas] = useState(false)
     const [isProcessSucssed, setIsProcessSucssed] = useState(false)
 
-    function handleInputChange(event) {
-        setInputValue(event.target.value);
-    }
 
 
     useEffect(() => {
@@ -47,59 +49,69 @@ export default function ImageMark(props) {
             context.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
         }
+
     }, []);
 
-    function RefreshCanvas(){
-        const canvas = canvasRef.current;
-        const canvas_image = new Image();
-        canvas_image.src = sourceImageUrl;
-        console.log(sourceImageUrl);
-        canvas_image.onload = () => {
-            ctx.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
-            setDeviceImage(canvas_image);
+
+
+    useClearCanvas(()=>{
+        if(deviceImage && ctx) {
+            console.log("clear")
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            ctx.drawImage(deviceImage, 0, 0, canvasRef.current.width, canvasRef.current.height);
         }
+    },[isClearCanvas])
+
+
+    async function SendImage(cropped_image_name){
+        croppedSettings.image_settings["image_name"]=`${cropped_image_name}.png`;
+        const formData = new FormData();
+        formData.append("image", dataURItoBlob(slicedImageUrl), `${cropped_image_name}.png`);
+        formData.append('image_settings', JSON.stringify(croppedSettings.image_settings));
+        const headers = {
+            "Content-Type": "multipart/form-data"
+        }
+        let response=null;
+        try {
+            response = await axios.post(`${BASE_API_URL}/process_rectangle/`, formData,
+                {
+                    headers,
+                    xsrfCookieName: 'csrftoken',
+                    xsrfHeaderName: 'X-CSRFTOKEN',
+                    withCredentials: true
+                })
+
+        }catch (e) {
+            console.log(e)
+        }
+        return response;
+
     }
 
-
     async function HandleSaveCroppedImage() {
-
-        const pattern = /^[a-zA-Z]+$/;
-        const isValid = pattern.test(inputValue);
+        const isValid = IMAGE_NAME_PATTERN.test(inputValue);
         if (!isValid) {
             alert('please enter a valid name that includes only letters');
             setInputValue("")
             return;
         }
-        setIsNewCanvas(true);
-        RefreshCanvas()
 
-        croppedSettings.image_settings["image_name"]=`${inputValue}.png`;
-        const formData = new FormData();
-        formData.append("image", dataURItoBlob(slicedImageUrl), `${inputValue}.png`);
-        console.log("setting",croppedSettings)
-        formData.append('image_settings', JSON.stringify(croppedSettings.image_settings));
-        const headers = {
-            "Content-Type": "multipart/form-data"
-        }
 
-        const response = await axios.post('http://localhost:8000/api/process_rectangle/', formData,
-          { headers,
-          xsrfCookieName: 'csrftoken',
-          xsrfHeaderName: 'X-CSRFTOKEN',
-          withCredentials: true
-        })
-        if(response.status === 201) {
+
+        const response = await SendImage(inputValue)
+        if(response?.status === 201) {
             alert("image successfully saved")
         }
         else{
+            setIsClearCanvas(!isClearCanvas);
             alert("something went wrong, please try again")
         }
+
+        setIsClearCanvas(!isClearCanvas);
         setIsSaveProcess(false);
         setIsProcessSucssed(true);
-        setInputValue('')
-
-        console.log(response)
-
+        setInputValue('');
+        setIsDrawingMode(false);
     }
 
 
@@ -113,36 +125,31 @@ export default function ImageMark(props) {
         return {x,y}
     }
 
-    function croppedImage(x_coordinate, y_coordinate){
+    function cropImage(x_coordinate, y_coordinate){
         const slicedImage = ctx.getImageData(x_coordinate, y_coordinate, RECTANGLE_WIDTH, RECTANGLE_HEIGHT);
         const canvasForSlicedImage = document.createElement("canvas");
         canvasForSlicedImage.width = slicedImage.width;
         canvasForSlicedImage.height = slicedImage.height;
         canvasForSlicedImage.getContext("2d").putImageData(slicedImage, 0, 0);
         setSlicedImageUrl(canvasForSlicedImage.toDataURL());
-        //setSlicedImageUrl(slicedImage);
     }
     async function handleCanvasClick(event) {
         if (ctx && deviceImage && isDrawingMode) {
             const {x,y} = paintRectangle(event.clientX, event.clientY);
             const rec_coordinates = coordinatesCalculation(x, y);
-            console.log(rec_coordinates);
-            const cropped_image = croppedImage(x,y);
-            console.log(cropped_image)
-
-            const new_data = {
-                cropped_image:"canvasForSlicedImage.toDataURL()",
-                image_settings:rec_coordinates
-            }
+            cropImage(x,y);
             setIsProcessSucssed(false)
-            setCroppedSettings(new_data)
-            setIsDrawingMode(false);
+            setCroppedSettings({image_settings:rec_coordinates})
             setIsSaveProcess(true)
         }
     }
 
     function handleNewRectangleClick() {
         setIsDrawingMode(true);
+    }
+
+    function handleInputChange(event) {
+        setInputValue(event.target.value);
     }
 
     return (
@@ -159,15 +166,12 @@ export default function ImageMark(props) {
                     </Col>
                     {slicedImageUrl && (!isProcessSucssed) ?
                         <Col>
-                        {/*<img src={slicedImageUrl} alt="Sliced image" />*/}
-                        <Input className="new-image-input" placeholder={"please select a name for the image"} type="text" value={inputValue} onChange={handleInputChange} ></Input>
+                        <Input className="new-image-input" placeholder={"please select a name for the image"}
+                               type="text" value={inputValue} onChange={handleInputChange} ></Input>
                         </Col> :null }
                 </Container>
-                 <canvas ref={canvasRef} onClick={handleCanvasClick} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}  style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
-
-
-
-
+                 <canvas ref={canvasRef} onClick={handleCanvasClick} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}
+                         style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
             </div>
     );
 
