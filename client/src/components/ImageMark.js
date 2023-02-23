@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import { useLocation } from 'react-router-dom';
-import {Button} from "reactstrap";
+import {Button, ButtonGroup, Input} from "reactstrap";
 import {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
@@ -9,6 +9,7 @@ import {
     RECTANGLE_STROKE_SIZE,
     RECTANGLE_WIDTH
 } from "../constants/index.js";
+import { coordinatesCalculation, dataURItoBlob} from "../utils/utilities.js";
 import axios from "axios";
 import Cookies from 'js-cookie';
 export default function ImageMark(props) {
@@ -24,11 +25,18 @@ export default function ImageMark(props) {
     const [slicedImageUrl, setSlicedImageUrl] = useState(null);
     const [isSaveProcess, setIsSaveProcess] = useState(false);
     const [isNewCanvas, setIsNewCanvas] = useState(false)
+    const [inputValue, setInputValue] = useState('');
+    const [isProcessSucssed, setIsProcessSucssed] = useState(false)
+
+    function handleInputChange(event) {
+        setInputValue(event.target.value);
+    }
 
 
     useEffect(() => {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
+        context.canvas.willReadFrequently = true;
         setCtx(context);
         const canvas_image = new Image();
         canvas_image.src = imageUrl;
@@ -37,35 +45,59 @@ export default function ImageMark(props) {
             context.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
         }
-    }, [isSaveProcess]);
+    }, []);
+
+    function RefreshCanvas(){
+        const canvas = canvasRef.current;
+        const canvas_image = new Image();
+        canvas_image.src = imageUrl;
+        console.log(imageUrl);
+        canvas_image.onload = () => {
+            ctx.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
+            setDeviceImage(canvas_image);
+        }
+    }
+
 
     async function HandleSaveCroppedImage() {
-        setIsSaveProcess(true);
-        // console.log("from upload",blob)
-        // const formData = new FormData();
-        // formData.append('image', blob);
-        console.log(croppedSettings);
-        const response = await axios({
-          method:'post',
-          url: 'http://localhost:8000/api/process_rectangle/',
-          data:croppedSettings,
+
+        const pattern = /^[a-zA-Z]+$/;
+        const isValid = pattern.test(inputValue);
+        if (!isValid) {
+            alert('please enter a valid name that includes only letters');
+            setInputValue("")
+            return;
+        }
+        setIsNewCanvas(true);
+        RefreshCanvas()
+
+        croppedSettings.image_settings["image_name"]=`${inputValue}.png`;
+        const formData = new FormData();
+        formData.append("image", dataURItoBlob(slicedImageUrl), `${inputValue}.png`);
+        console.log("setting",croppedSettings)
+        formData.append('image_settings', JSON.stringify(croppedSettings.image_settings));
+        const headers = {
+            "Content-Type": "multipart/form-data"
+        }
+
+        const response = await axios.post('http://localhost:8000/api/process_rectangle/', formData,
+          { headers,
           xsrfCookieName: 'csrftoken',
           xsrfHeaderName: 'X-CSRFTOKEN',
           withCredentials: true
-            })
-        // response.status === 201? setIsSaveProcess(false): null
-
-    }
-
-    function coordinatesCalculation(x,y){
-        const coordinates ={
-            "top_left_coordinate": [x,y],
-            "top_right_coordinate": [x + RECTANGLE_WIDTH,y],
-            "bottom_left_coordinate": [x ,y + RECTANGLE_HEIGHT],
-            "bottom_right_coordinate": [x + RECTANGLE_WIDTH, y + RECTANGLE_HEIGHT]
+        })
+        if(response.status === 201) {
+            alert("image successfully saved")
         }
-        Object.keys(coordinates).forEach(function(key){ coordinates[key] = coordinates[key].join(',') });
-        return coordinates;
+        else{
+            alert("something went wrong, please try again")
+        }
+        setIsSaveProcess(false);
+        setIsProcessSucssed(true);
+        setInputValue('')
+
+        console.log(response)
+
     }
 
 
@@ -81,13 +113,12 @@ export default function ImageMark(props) {
 
     function croppedImage(x_coordinate, y_coordinate){
         const slicedImage = ctx.getImageData(x_coordinate, y_coordinate, RECTANGLE_WIDTH, RECTANGLE_HEIGHT);
-        // const canvasForSlicedImage = document.createElement("canvas");
-        // canvasForSlicedImage.width = slicedImage.width;
-        // canvasForSlicedImage.height = slicedImage.height;
-        // canvasForSlicedImage.getContext("2d").putImageData(slicedImage, 0, 0);
-        // setSlicedImageUrl(canvasForSlicedImage.toDataURL());
-        const blob = new Blob([slicedImage], { type: 'image/png' });
-        return blob;
+        const canvasForSlicedImage = document.createElement("canvas");
+        canvasForSlicedImage.width = slicedImage.width;
+        canvasForSlicedImage.height = slicedImage.height;
+        canvasForSlicedImage.getContext("2d").putImageData(slicedImage, 0, 0);
+        setSlicedImageUrl(canvasForSlicedImage.toDataURL());
+        //setSlicedImageUrl(slicedImage);
     }
     async function handleCanvasClick(event) {
         if (ctx && deviceImage && isDrawingMode) {
@@ -99,24 +130,32 @@ export default function ImageMark(props) {
 
             const new_data = {
                 cropped_image:"canvasForSlicedImage.toDataURL()",
-                image_settings:{image_name:"cropped.png",...rec_coordinates}
+                image_settings:rec_coordinates
             }
+            setIsProcessSucssed(false)
             setCroppedSettings(new_data)
             setIsDrawingMode(false);
+            setIsSaveProcess(true)
         }
     }
 
     function handleNewRectangleClick() {
         setIsDrawingMode(true);
     }
-    const isButtonDisabled = isDrawingMode;
 
     return (
         <>
+            <div className="text-center">
         <canvas ref={canvasRef} onClick={handleCanvasClick} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}  style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
-        <Button onClick={handleNewRectangleClick} disabled={isButtonDisabled}>New Rectangle</Button>
-            {slicedImageUrl && <img src={slicedImageUrl} alt="Sliced image" />}
-        <Button onClick={HandleSaveCroppedImage}>save</Button>
+
+                            <Button onClick={handleNewRectangleClick} disabled={isDrawingMode}>New Rectangle</Button>
+                            <Button onClick={HandleSaveCroppedImage} disabled={!isSaveProcess}>save</Button>
+            {slicedImageUrl && (!isProcessSucssed) ?<>
+                {/*<img src={slicedImageUrl} alt="Sliced image" />*/}
+                <Input placeholder={"please select a name for the image"} type="text" value={inputValue} onChange={handleInputChange} pattern="^[a-zA-Z]+$" title="only letters"></Input>
+            </> :null }
+
+            </div>
         </>
     );
 
