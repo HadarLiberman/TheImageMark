@@ -149,7 +149,7 @@ export default function ImageMark(props) {
             <div className="text-center">
                 <Container >
                     <Col>
-                       <p className="source-image-name">{sourceImageName}</p>
+                       <p className="source-image-name">File name: {sourceImageName}</p>
                     </Col>
                     <Col>
                 <ButtonGroup>
