@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import { useLocation } from 'react-router-dom';
-import {Button, ButtonGroup, Input} from "reactstrap";
+import {Button, ButtonGroup, Col, Container, Input} from "reactstrap";
 import {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
@@ -8,15 +8,17 @@ import {
     RECTANGLE_HEIGHT,
     RECTANGLE_STROKE_SIZE,
     RECTANGLE_WIDTH
-} from "../constants/index.js";
-import { coordinatesCalculation, dataURItoBlob} from "../utils/utilities.js";
+} from "../../constants/index.js";
+import { coordinatesCalculation, dataURItoBlob} from "../../utils/utilities.js";
 import axios from "axios";
+import "./ImageMark.css"
 import Cookies from 'js-cookie';
 export default function ImageMark(props) {
 
     const location = useLocation();
 
-    const [imageUrl, setImageUrl] = useState(location.state.image_url);
+    const [sourceImageUrl, setSourceImageUrl] = useState(location.state.image_url);
+    const [sourceImageName, setSourceImageName] = useState(location.state.image_name);
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
     const [deviceImage, setDeviceImage] = useState(null);
@@ -39,8 +41,8 @@ export default function ImageMark(props) {
         context.canvas.willReadFrequently = true;
         setCtx(context);
         const canvas_image = new Image();
-        canvas_image.src = imageUrl;
-        console.log(imageUrl);
+        canvas_image.src = sourceImageUrl;
+        console.log(sourceImageUrl);
         canvas_image.onload = () => {
             context.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
@@ -50,8 +52,8 @@ export default function ImageMark(props) {
     function RefreshCanvas(){
         const canvas = canvasRef.current;
         const canvas_image = new Image();
-        canvas_image.src = imageUrl;
-        console.log(imageUrl);
+        canvas_image.src = sourceImageUrl;
+        console.log(sourceImageUrl);
         canvas_image.onload = () => {
             ctx.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
@@ -144,19 +146,29 @@ export default function ImageMark(props) {
     }
 
     return (
-        <>
             <div className="text-center">
-        <canvas ref={canvasRef} onClick={handleCanvasClick} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}  style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
+                <Container >
+                    <Col>
+                       <p className="source-image-name">{sourceImageName}</p>
+                    </Col>
+                    <Col>
+                <ButtonGroup>
+                    <Button color="primary" onClick={handleNewRectangleClick} disabled={isDrawingMode} className="new-rec-btn">New Rectangle</Button>
+                    <Button color="primary" onClick={HandleSaveCroppedImage} disabled={!isSaveProcess}>save</Button>
+                </ButtonGroup >
+                    </Col>
+                    {slicedImageUrl && (!isProcessSucssed) ?
+                        <Col>
+                        {/*<img src={slicedImageUrl} alt="Sliced image" />*/}
+                        <Input className="new-image-input" placeholder={"please select a name for the image"} type="text" value={inputValue} onChange={handleInputChange} ></Input>
+                        </Col> :null }
+                </Container>
+                 <canvas ref={canvasRef} onClick={handleCanvasClick} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}  style={{cursor: isDrawingMode ? 'pointer' : 'auto'}}/>
 
-                            <Button onClick={handleNewRectangleClick} disabled={isDrawingMode}>New Rectangle</Button>
-                            <Button onClick={HandleSaveCroppedImage} disabled={!isSaveProcess}>save</Button>
-            {slicedImageUrl && (!isProcessSucssed) ?<>
-                {/*<img src={slicedImageUrl} alt="Sliced image" />*/}
-                <Input placeholder={"please select a name for the image"} type="text" value={inputValue} onChange={handleInputChange} pattern="^[a-zA-Z]+$" title="only letters"></Input>
-            </> :null }
+
+
 
             </div>
-        </>
     );
 
 }

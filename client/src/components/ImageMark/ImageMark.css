@@ -1,0 +1,12 @@
+.source-image-name{
+    color: #0291d9;
+    font-weight: bold;
+    font-size: 3rem;
+}
+
+.new-image-input{
+    text-align:center;
+    width: 30% !important;
+    margin: 15px auto auto;
+
+}
