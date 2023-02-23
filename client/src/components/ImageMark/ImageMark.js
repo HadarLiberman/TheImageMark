@@ -11,14 +11,18 @@ import {
 } from "../../constants/index.js";
 import { coordinatesCalculation, dataURItoBlob} from "../../utils/utilities.js";
 import axios from "axios";
-import "./ImageMark.css"
+import "./ImageMark.css";
+import {useLocalStorage} from "../useLocalStorage.js";
 import Cookies from 'js-cookie';
 export default function ImageMark(props) {
 
     const location = useLocation();
 
+    // const [sourceImageUrl, setSourceImageUrl] = useLocalStorage('image',location.state.image_url);
+
     const [sourceImageUrl, setSourceImageUrl] = useState(location.state.image_url);
     const [sourceImageName, setSourceImageName] = useState(location.state.image_name);
+
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
     const [deviceImage, setDeviceImage] = useState(null);
@@ -42,7 +46,6 @@ export default function ImageMark(props) {
         setCtx(context);
         const canvas_image = new Image();
         canvas_image.src = sourceImageUrl;
-        console.log(sourceImageUrl);
         canvas_image.onload = () => {
             context.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
@@ -50,10 +53,10 @@ export default function ImageMark(props) {
     }, []);
 
     function RefreshCanvas(){
+        console.log('in refresh')
         const canvas = canvasRef.current;
         const canvas_image = new Image();
         canvas_image.src = sourceImageUrl;
-        console.log(sourceImageUrl);
         canvas_image.onload = () => {
             ctx.drawImage(canvas_image, 0, 0, canvas.width, canvas.height);
             setDeviceImage(canvas_image);
@@ -144,6 +147,7 @@ export default function ImageMark(props) {
     function handleNewRectangleClick() {
         setIsDrawingMode(true);
     }
+
 
     return (
             <div className="text-center">
