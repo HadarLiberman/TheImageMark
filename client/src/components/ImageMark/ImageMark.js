@@ -56,7 +56,6 @@ export default function ImageMark(props) {
 
     useClearCanvas(()=>{
         if(deviceImage && ctx) {
-            console.log("clear")
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
             ctx.drawImage(deviceImage, 0, 0, canvasRef.current.width, canvasRef.current.height);
         }
@@ -74,46 +73,13 @@ export default function ImageMark(props) {
         let response=null;
         try {
             response = await axios.post(`${BASE_API_URL}/process_rectangle/`, formData,
-                {
-                    headers,
-                    xsrfCookieName: 'csrftoken',
-                    xsrfHeaderName: 'X-CSRFTOKEN',
-                    withCredentials: true
-                })
-
+                {headers, xsrfCookieName: 'csrftoken', xsrfHeaderName: 'X-CSRFTOKEN', withCredentials: true})
         }catch (e) {
             console.log(e)
         }
         return response;
 
     }
-
-    async function HandleSaveCroppedImage() {
-        const isValid = IMAGE_NAME_PATTERN.test(inputValue);
-        if (!isValid) {
-            alert('please enter a valid name that includes only letters');
-            setInputValue("")
-            return;
-        }
-
-
-
-        const response = await SendImage(inputValue)
-        if(response?.status === 201) {
-            alert("image successfully saved")
-        }
-        else{
-            setIsClearCanvas(!isClearCanvas);
-            alert("something went wrong, please try again")
-        }
-
-        setIsClearCanvas(!isClearCanvas);
-        setIsSaveProcess(false);
-        setIsProcessSucssed(true);
-        setInputValue('');
-        setIsDrawingMode(false);
-    }
-
 
     function paintRectangle(x_coordinate,y_coordinate){
         const rect = canvasRef.current.getBoundingClientRect();
@@ -132,6 +98,30 @@ export default function ImageMark(props) {
         canvasForSlicedImage.height = slicedImage.height;
         canvasForSlicedImage.getContext("2d").putImageData(slicedImage, 0, 0);
         setSlicedImageUrl(canvasForSlicedImage.toDataURL());
+    }
+
+    async function HandleSaveCroppedImage() {
+        const isValid = IMAGE_NAME_PATTERN.test(inputValue);
+        if (!isValid) {
+            alert('please enter a valid name that includes only letters');
+            setInputValue("")
+            return;
+        }
+
+        const response = await SendImage(inputValue)
+        if(response?.status === 201) {
+            alert("image successfully saved")
+        }
+        else{
+            setIsClearCanvas(!isClearCanvas);
+            alert("something went wrong, please try again")
+        }
+
+        setIsClearCanvas(!isClearCanvas);
+        setIsSaveProcess(false);
+        setIsProcessSucssed(true);
+        setInputValue('');
+        setIsDrawingMode(false);
     }
     async function handleCanvasClick(event) {
         if (ctx && deviceImage && isDrawingMode) {
